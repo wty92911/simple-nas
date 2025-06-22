@@ -1,0 +1,20 @@
+[package]
+name = "simple-nas"
+version = "0.1.0"
+authors = ["wty92911 <2066946886@qq.com>"]
+edition = "2024"
+license = "MIT"
+documentation = "https://docs.rs/"
+repository = "https://github.com/wty92911/simple-nas"
+homepage = "https://github.com/wty92911/simple-nas"
+description = """
+
+"""
+readme = "README.md"
+categories = ["development-tools"]
+keywords = []
+
+[dependencies]
+
+
+[dev-dependencies]
