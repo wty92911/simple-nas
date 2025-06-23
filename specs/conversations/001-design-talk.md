@@ -1,3 +1,5 @@
+Use o3-pro
+
 # 1
 User:
 ```
@@ -104,8 +106,8 @@ This specification sets the scope and roadmap. Next step: decide concrete techno
 User:
 ```
 Also concern about meidia service, such as preview of images and display of videos.
-And summary this in the @000-design.md  as the spec for the next ai.
+And summary this in the @000-design-prd.md  as the spec for the next ai.
 ```
 
 AI:
-Changes are in the @000-design.md.
+Changes are in the @000-design-prd.md.
