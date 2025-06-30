@@ -1,3 +1,3 @@
-pub mod settings;
+pub mod app;
 
-pub use settings::Settings;
+pub use app::*;

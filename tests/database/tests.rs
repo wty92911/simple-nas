@@ -7,7 +7,7 @@ use sqlx_db_tester::TestPg;
 use uuid::Uuid;
 
 // Helper function to create test database
-async fn setup_test_db() -> Result<(TestPg, DatabaseService)> {
+pub async fn setup_test_db() -> Result<(TestPg, DatabaseService)> {
     let tdb = TestPg::new(
         "postgres://postgres:postgres@localhost:5432".to_string(),
         std::path::Path::new("./migrations"),
@@ -18,10 +18,10 @@ async fn setup_test_db() -> Result<(TestPg, DatabaseService)> {
 }
 
 // Helper function to create a test user
-async fn create_test_user(service: &DatabaseService, username: &str) -> Result<Uuid> {
+pub async fn create_test_user(service: &DatabaseService, username: &str) -> Result<Uuid> {
     let request = CreateUserRequest {
         username: username.to_string(),
-        email: format!("{}@example.com", username),
+        email: format!("{username}@example.com"),
         password: "test_password123".to_string(),
         metadata: json!({"test": true}),
     };

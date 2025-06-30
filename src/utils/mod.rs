@@ -2,7 +2,7 @@
 // pub mod crypto;       // Cryptographic utilities
 // pub mod validation;   // Input validation utilities
 
-use argon2::password_hash::{rand_core::OsRng, SaltString};
+use argon2::password_hash::{SaltString, rand_core::OsRng};
 use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
 
 use anyhow::Result;
@@ -114,10 +114,12 @@ mod tests {
 
         let result = verify_password(password, invalid_hash);
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("Invalid password hash format"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Invalid password hash format")
+        );
     }
 
     #[test]
@@ -125,12 +127,14 @@ mod tests {
         let password = "test_password";
         let empty_hash = "";
 
-        let result = verify_password(password, &empty_hash);
+        let result = verify_password(password, empty_hash);
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("Invalid password hash format"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Invalid password hash format")
+        );
     }
 
     #[test]
@@ -140,10 +144,12 @@ mod tests {
 
         let result = verify_password(password, malformed_hash);
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("Invalid password hash format"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Invalid password hash format")
+        );
     }
 
     #[test]
@@ -163,17 +169,15 @@ mod tests {
             let verification = verify_password(password, &hash).unwrap();
             assert!(
                 verification,
-                "Round-trip verification failed for password: '{}'",
-                password
+                "Round-trip verification failed for password: {password}"
             );
 
             // Also test that a wrong password fails
-            let wrong_password = format!("{}_wrong", password);
+            let wrong_password = format!("{password}_wrong");
             let wrong_verification = verify_password(&wrong_password, &hash).unwrap();
             assert!(
                 !wrong_verification,
-                "Wrong password incorrectly verified for: '{}'",
-                password
+                "Wrong password incorrectly verified for: {password}"
             );
         }
     }

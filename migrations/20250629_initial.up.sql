@@ -1,5 +1,5 @@
 -- Initial PostgreSQL schema for Simple Home NAS
--- Migration: 001_initial.sql
+-- Migration: 20240101000000_initial
 -- Description: Create core tables with PostgreSQL-optimized features
 
 -- Enable required extensions
@@ -113,4 +113,4 @@ INSERT INTO users (username, email, password_hash, is_admin) VALUES (
     'admin@localhost',
     '$argon2id$v=19$m=65536,t=3,p=4$salt$hash', -- Replace with actual Argon2 hash
     true
-); 
+);

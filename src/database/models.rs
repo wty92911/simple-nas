@@ -53,7 +53,7 @@ pub struct LoginResponse {
     pub expires_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct UserInfo {
     pub id: Uuid,
     pub username: String,

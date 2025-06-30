@@ -1,131 +1,64 @@
-use axum::{
-    extract::Request,
-    http::StatusCode,
-    response::Json,
-    routing::{get, post},
-    Router,
-};
-use serde_json::{json, Value};
-use std::net::SocketAddr;
+use anyhow::Result;
+use std::{net::SocketAddr, sync::Arc};
 use tower::ServiceBuilder;
-use tower_http::{
-    cors::CorsLayer,
-    trace::{DefaultMakeSpan, TraceLayer},
-};
-use tracing::{error, info, Level};
-use tracing_subscriber;
+use tower_http::trace::{DefaultMakeSpan, TraceLayer};
+use tracing::{Level, info};
 
-mod config;
-mod database;
-mod handlers;
-mod middleware;
-mod services;
-mod utils;
+// Import necessary components
+use clap::Parser;
+use simple_nas::config::AppConfig;
+use simple_nas::handlers::AppState;
+use simple_nas::routes::create_router;
 
-use config::Settings;
-use database::{create_connection_pool, health_check, run_migrations};
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+struct Args {
+    /// path to the config file
+    #[arg(short, long, default_value = "./fixtures/configs/app_config.yml")]
+    config_path: String,
+}
 
 #[tokio::main]
-async fn main() -> anyhow::Result<()> {
+async fn main() -> Result<()> {
     // Initialize tracing
     tracing_subscriber::fmt()
         .with_target(false)
         .with_max_level(Level::INFO)
         .init();
 
-    info!("Starting Simple Home NAS server...");
+    info!("🚀 Starting Simple Home NAS server...");
 
-    // Load configuration
-    let settings = Settings::default();
-    info!(
-        "Loaded configuration with database URL: {}",
-        settings.database.url.replace(
-            &settings.database.url.split('@').nth(1).unwrap_or(""),
-            "@[REDACTED]"
-        )
+    let args = Args::parse();
+    // Print the parsed args
+    info!("🔍 Parsed arguments: {:?}", args);
+
+    // Load application configuration from environment
+    let app_config = AppConfig::from_yml(args.config_path)?;
+
+    info!("✅ Configuration loaded successfully");
+
+    // Create application state
+    let app_state = Arc::new(AppState::new(&app_config).await?);
+
+    info!("🔐 Security infrastructure initialized");
+
+    let service = ServiceBuilder::new().layer(
+        TraceLayer::new_for_http().make_span_with(DefaultMakeSpan::default().include_headers(true)),
     );
-
-    // Create database connection pool
-    info!("Connecting to PostgreSQL database...");
-    let db_pool = create_connection_pool(&settings.database.url)
-        .await
-        .map_err(|e| {
-            error!("Failed to create database connection pool: {}", e);
-            e
-        })?;
-
-    // Run database migrations
-    info!("Running database migrations...");
-    run_migrations(&db_pool).await.map_err(|e| {
-        error!("Database migration failed: {}", e);
-        e
-    })?;
-
-    // Verify database connection
-    info!("Verifying database connection...");
-    health_check(&db_pool).await.map_err(|e| {
-        error!("Database health check failed: {}", e);
-        e
-    })?;
-
-    info!("Database connection established and migrations completed successfully");
+    // TODO: add rate limit and concurrency limit
 
     // Build our application with routes
-    let app = Router::new()
-        .route("/", get(root))
-        .route("/health", get(health_check_handler))
-        .route("/health/db", get(database_health_handler))
-        .route(
-            "/api/v1/auth/login",
-            post(handlers::auth::login_placeholder),
-        )
-        .with_state(db_pool)
-        .layer(
-            ServiceBuilder::new()
-                .layer(
-                    TraceLayer::new_for_http()
-                        .make_span_with(DefaultMakeSpan::default().include_headers(true)),
-                )
-                .layer(CorsLayer::permissive()),
-        );
+    let app = create_router(app_state).layer(service);
 
+    let addr = SocketAddr::from(([127, 0, 0, 1], app_config.port));
     // Start server
-    let addr = SocketAddr::from(([127, 0, 0, 1], settings.server.port));
-    info!("Server listening on {}", addr);
+    info!("🌐 Server listening on {}", addr);
 
     let listener = tokio::net::TcpListener::bind(addr).await?;
-    axum::serve(listener, app).await?;
-
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .await?;
     Ok(())
-}
-
-async fn root() -> Json<Value> {
-    Json(json!({
-        "message": "Simple Home NAS API",
-        "version": "0.1.0",
-        "status": "running",
-        "database": "PostgreSQL"
-    }))
-}
-
-async fn health_check_handler() -> Json<Value> {
-    Json(json!({
-        "status": "healthy",
-        "timestamp": chrono::Utc::now().to_rfc3339(),
-        "version": "0.1.0",
-        "database": "PostgreSQL"
-    }))
-}
-
-async fn database_health_handler(
-    axum::extract::State(pool): axum::extract::State<sqlx::PgPool>,
-) -> Result<Json<Value>, StatusCode> {
-    match health_check(&pool).await {
-        Ok(_) => Ok(Json(json!({
-            "database_status": "healthy",
-            "timestamp": chrono::Utc::now().to_rfc3339(),
-            "database_type": "PostgreSQL"
-        }))),
-        Err(_) => Err(StatusCode::SERVICE_UNAVAILABLE),
-    }
 }

@@ -11,7 +11,10 @@ use crate::database::models::{
 
 use crate::utils::{hash_password, verify_password};
 
-#[allow(dead_code)]
+/// Database service layer for handling all database operations
+/// This provides a clean abstraction over raw database queries
+/// and includes connection pooling and error handling
+#[derive(Clone)]
 pub struct DatabaseService {
     pool: PgPool,
 }
@@ -68,8 +71,8 @@ impl DatabaseService {
         .await?;
 
         if let Some(row) = row {
-            let stored_hash: String = row.get("password_hash");
-            if verify_password(&password, &stored_hash)? {
+            let stored_hash: &str = row.get("password_hash");
+            if verify_password(password, stored_hash)? {
                 return Ok(Some(UserInfo {
                     id: row.get("id"),
                     username: row.get("username"),
@@ -168,6 +171,7 @@ impl DatabaseService {
     }
 
     // File management
+    #[allow(clippy::too_many_arguments)]
     pub async fn create_file_metadata(
         &self,
         name: String,
@@ -247,7 +251,7 @@ impl DatabaseService {
 
         // Use QueryBuilder for safe parameter binding
         let mut query_builder = sqlx::QueryBuilder::new(
-            "SELECT id, name, path, size, mime_type, owner_id, tags, metadata, created_at, updated_at FROM files WHERE 1=1"
+            "SELECT id, name, path, size, mime_type, owner_id, tags, metadata, created_at, updated_at FROM files WHERE 1=1",
         );
 
         // Add conditions using QueryBuilder
@@ -404,14 +408,14 @@ impl DatabaseService {
     ) -> Result<Option<(ShareInfo, FileInfo)>> {
         let row = sqlx::query(
             r#"
-            SELECT 
-                s.id as share_id, s.file_id, s.share_hash, s.expires_at, s.max_downloads, 
+            SELECT
+                s.id as share_id, s.file_id, s.share_hash, s.expires_at, s.max_downloads,
                 s.download_count, s.metadata as share_metadata, s.created_at as share_created_at,
-                f.name, f.path, f.size, f.mime_type, f.owner_id, f.tags, 
+                f.name, f.path, f.size, f.mime_type, f.owner_id, f.tags,
                 f.metadata as file_metadata, f.created_at as file_created_at, f.updated_at
             FROM shares s
             INNER JOIN files f ON s.file_id = f.id
-            WHERE s.share_hash = $1 
+            WHERE s.share_hash = $1
             AND (s.expires_at IS NULL OR s.expires_at > NOW())
             AND (s.max_downloads IS NULL OR s.download_count < s.max_downloads)
             "#,
@@ -461,8 +465,8 @@ impl DatabaseService {
         let rows = sqlx::query(
             r#"
             SELECT id, file_id, share_hash, expires_at, max_downloads, download_count, metadata, created_at
-            FROM shares 
-            WHERE created_by = $1 
+            FROM shares
+            WHERE created_by = $1
             ORDER BY created_at DESC
             "#,
         )
@@ -491,15 +495,13 @@ impl DatabaseService {
 
     // Utility functions
     fn generate_secure_hash(&self) -> String {
-        use rand::Rng;
         use sha2::{Digest, Sha256};
 
-        let mut rng = rand::thread_rng();
-        let random_bytes: [u8; 32] = rng.gen();
+        let random_bytes: [u8; 32] = rand::random();
         let mut hasher = Sha256::new();
         hasher.update(random_bytes);
         let result = hasher.finalize();
-        format!("{:x}", result)[..16].to_string() // Take first 16 chars
+        format!("{result:x}")[..16].to_string() // Take first 16 chars
     }
 
     // Health check

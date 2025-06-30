@@ -2,7 +2,7 @@
 name = "simple-nas"
 version = "0.1.0"
 authors = ["wty92911 <2066946886@qq.com>"]
-edition = "2021"
+edition = "2024"
 license = "MIT"
 documentation = "https://docs.rs/"
 repository = "https://github.com/wty92911/simple-nas"
@@ -18,9 +18,9 @@ path = "src/main.rs"
 
 [dependencies]
 # Web framework and async runtime
-axum = "0.7"
+axum = "0.8"
 tokio = { version = "1.0", features = ["full"] }
-tower = "0.4"
+tower = { version = "0.5", features = ["limit"] }
 tower-http = { version = "0.5", features = ["cors", "trace", "fs"] }
 
 # Serialization
@@ -28,7 +28,7 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 
 # Database - PostgreSQL specific
-sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres", "uuid", "chrono", "json", "migrate"] }
+sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio-rustls", "postgres", "uuid", "chrono", "json", "migrate"] }
 
 # Authentication and security
 argon2 = "0.5"
@@ -40,7 +40,6 @@ rand = "0.8"
 uuid = { version = "1.0", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
 anyhow = "1.0"
-thiserror = "1.0"
 
 # Logging and tracing
 tracing = "0.1"
@@ -52,10 +51,14 @@ config = "0.14"
 # File handling
 mime_guess = "2.0"
 bytes = "1.0"
-sqlx-db-tester = { git = "https://github.com/tyrchen/sqlx-db-tester" }
+serde_yaml = "0.9.34"
+
+# cli
+clap = { version = "4.5.40", features = ["derive"] }
 
 [dev-dependencies]
 tempfile = "3.0"
 testcontainers = "0.15"
 testcontainers-modules = { version = "0.3", features = ["postgres"] }
 tokio-test = "0.4"
+sqlx-db-tester = "0.6.0"

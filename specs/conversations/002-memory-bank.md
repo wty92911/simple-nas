@@ -28,5 +28,5 @@ User:
 ```
 IMPLEMENT: do not use docker postgres sql, just use normal postgres sql.
 And, relevant structs of response and request, I think they should be put in the @services models.rs
-Change these and write relvant tests.
+Change these and write relevant tests.
 ```
